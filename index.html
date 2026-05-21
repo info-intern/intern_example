@@ -125,19 +125,25 @@
 
                 <div class="summary-grid">
                     <div class="summary-cell">
-                        <span class="summary-cell__dot summary-cell__dot--found"></span>
+                        <span class="summary-cell__head">
+                            <span class="summary-cell__dot summary-cell__dot--found"></span>
+                            <span class="summary-cell__label">有</span>
+                        </span>
                         <span class="summary-cell__num" id="sum-found">—</span>
-                        <span class="summary-cell__label">あり</span>
                     </div>
                     <div class="summary-cell">
-                        <span class="summary-cell__dot summary-cell__dot--missing"></span>
+                        <span class="summary-cell__head">
+                            <span class="summary-cell__dot summary-cell__dot--missing"></span>
+                            <span class="summary-cell__label">無</span>
+                        </span>
                         <span class="summary-cell__num" id="sum-missing">—</span>
-                        <span class="summary-cell__label">なし</span>
                     </div>
                     <div class="summary-cell">
-                        <span class="summary-cell__dot summary-cell__dot--unknown"></span>
+                        <span class="summary-cell__head">
+                            <span class="summary-cell__dot summary-cell__dot--unknown"></span>
+                            <span class="summary-cell__label">識別不可</span>
+                        </span>
                         <span class="summary-cell__num" id="sum-unknown">—</span>
-                        <span class="summary-cell__label">マスタ外</span>
                     </div>
                 </div>
             </section>
@@ -145,15 +151,15 @@
             <section class="result-tabs">
                 <div class="tabs" role="tablist">
                     <button class="tab" role="tab" data-tab="found" aria-selected="true">
-                        <span class="tab__label">あり</span>
+                        <span class="tab__label">有</span>
                         <span class="tab__count" id="tab-found">0</span>
                     </button>
                     <button class="tab" role="tab" data-tab="missing">
-                        <span class="tab__label">なし</span>
+                        <span class="tab__label">無</span>
                         <span class="tab__count" id="tab-missing">0</span>
                     </button>
                     <button class="tab" role="tab" data-tab="unknown">
-                        <span class="tab__label">マスタ外</span>
+                        <span class="tab__label">識別不可</span>
                         <span class="tab__count" id="tab-unknown">0</span>
                     </button>
                 </div>

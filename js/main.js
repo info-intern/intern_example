@@ -156,12 +156,14 @@
         if (!items || items.length === 0) {
             const empty = document.createElement('li');
             empty.className = 'product-empty';
-            empty.textContent = tab === 'unknown' ? 'マスタ外コードはありませんでした'
-                : tab === 'missing' ? '欠品はありませんでした'
-                : '認識された商品がありません';
+            empty.textContent = tab === 'unknown' ? '識別不可のコードはありません'
+                : tab === 'missing' ? '無の商品はありません'
+                : '有の商品はありません';
             list.appendChild(empty);
             return;
         }
+
+        const statusLabel = { found: '有', missing: '無', unknown: '識別不可' };
 
         items.forEach((p, i) => {
             const li = document.createElement('li');
@@ -172,7 +174,7 @@
                 <span class="product-item__name">${escape(p.name)}</span>
                 <span class="product-item__status">
                     <span class="dot dot--${tab}"></span>
-                    ${ tab === 'found' ? '確認済み' : tab === 'missing' ? '未確認' : 'マスタ外' }
+                    ${statusLabel[tab]}
                 </span>
             `;
             list.appendChild(li);

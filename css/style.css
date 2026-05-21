@@ -152,8 +152,8 @@ button:focus-visible {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 28px;
-    padding: 32px 24px 40px;
+    gap: 36px;
+    padding: 36px 24px 44px;
     animation: screenEnter 0.22s ease-out;
 }
 
@@ -173,32 +173,33 @@ button:focus-visible {
 .hero {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    padding-top: 8px;
+    gap: 10px;
+    padding-top: 12px;
 }
 
 .hero__title {
     margin: 0;
     color: var(--c-ink);
-    font-size: 34px;
+    font-size: 38px;
     font-weight: 600;
     letter-spacing: -0.03em;
-    line-height: 1.1;
+    line-height: 1.08;
 }
 
 .hero__subtitle {
     margin: 0;
     color: var(--c-faint);
     font-size: 12px;
-    font-weight: 400;
-    letter-spacing: 0.02em;
+    font-weight: 500;
+    letter-spacing: 0.04em;
 }
 
 .hero__desc {
-    margin: 12px 0 0;
+    margin: 18px 0 0;
     color: var(--c-muted);
     font-size: 14px;
     max-width: 32ch;
+    line-height: 1.6;
 }
 
 /* =========================================================
@@ -216,8 +217,8 @@ button:focus-visible {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
-    gap: 16px;
-    padding: 14px 0;
+    gap: 24px;
+    padding: 18px 0;
     border-bottom: 1px solid var(--c-line);
 }
 
@@ -229,7 +230,7 @@ button:focus-visible {
     color: var(--c-muted);
     font-size: 12px;
     font-weight: 500;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
 }
 
 .meta__val {
@@ -238,12 +239,12 @@ button:focus-visible {
     font-weight: 500;
     display: inline-flex;
     align-items: baseline;
-    gap: 6px;
+    gap: 8px;
 }
 
 .meta__val b {
     font-family: var(--f-mono);
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 600;
     letter-spacing: -0.01em;
 }
@@ -252,7 +253,7 @@ button:focus-visible {
     color: var(--c-faint);
     font-size: 12px;
     font-weight: 400;
-    margin-left: 2px;
+    margin-left: 4px;
 }
 
 /* =========================================================
@@ -487,21 +488,22 @@ button:focus-visible {
 .result-header {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 10px;
 }
 
 .result-date {
-    margin-top: 4px;
+    margin-top: 2px;
     color: var(--c-faint);
     font-family: var(--f-mono);
     font-size: 11px;
+    letter-spacing: 0.02em;
 }
 
 .result-summary {
     display: flex;
     flex-direction: column;
-    gap: 18px;
-    padding: 24px 0;
+    gap: 32px;
+    padding: 32px 0 36px;
     border-top: 1px solid var(--c-line);
     border-bottom: 1px solid var(--c-line);
 }
@@ -509,34 +511,37 @@ button:focus-visible {
 .summary-main {
     display: flex;
     align-items: baseline;
-    gap: 6px;
+    gap: 10px;
 }
 
 .summary-main__num {
     color: var(--c-ink);
     font-family: var(--f-mono);
-    font-size: 56px;
+    font-size: 76px;
     font-weight: 600;
-    line-height: 1;
-    letter-spacing: -0.04em;
+    line-height: 0.95;
+    letter-spacing: -0.045em;
 }
 
 .summary-main__denom {
     color: var(--c-faint);
     font-family: var(--f-mono);
-    font-size: 22px;
+    font-size: 26px;
     font-weight: 400;
+    letter-spacing: -0.02em;
 }
 
 .summary-main__label {
-    margin-top: -10px;
+    margin-top: 14px;
     color: var(--c-muted);
     font-size: 13px;
+    letter-spacing: 0.02em;
 }
 
 .summary-progress {
     position: relative;
-    height: 3px;
+    height: 4px;
+    margin-top: 4px;
     overflow: hidden;
     background: var(--c-line);
     border-radius: 999px;
@@ -552,41 +557,52 @@ button:focus-visible {
 .summary-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
+    gap: 8px;
+    margin-top: 4px;
 }
 
 .summary-cell {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding-top: 6px;
-    border-top: 1px solid var(--c-line);
+    gap: 14px;
+    padding: 18px 14px 14px;
+    background: var(--c-surface-2);
+    border: 1px solid var(--c-line);
+    border-radius: var(--radius);
+}
+
+.summary-cell__head {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .summary-cell__dot {
-    width: 6px;
-    height: 6px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     background: var(--c-faint);
-    margin-bottom: 4px;
+    flex: 0 0 auto;
 }
 
 .summary-cell__dot--found { background: var(--c-found); }
 .summary-cell__dot--missing { background: var(--c-missing); }
 .summary-cell__dot--unknown { background: var(--c-unknown); }
 
-.summary-cell__num {
-    color: var(--c-ink);
-    font-family: var(--f-mono);
-    font-size: 22px;
-    font-weight: 600;
-    letter-spacing: -0.02em;
-    line-height: 1;
-}
-
 .summary-cell__label {
     color: var(--c-muted);
     font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+}
+
+.summary-cell__num {
+    color: var(--c-ink);
+    font-family: var(--f-mono);
+    font-size: 32px;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1;
 }
 
 /* =========================================================
@@ -596,7 +612,7 @@ button:focus-visible {
 .result-tabs {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 18px;
 }
 
 .tabs {
@@ -609,10 +625,10 @@ button:focus-visible {
 .tab {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 14px;
+    gap: 10px;
+    padding: 14px 16px;
     color: var(--c-muted);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     border-bottom: 1.5px solid transparent;
     margin-bottom: -1px;
@@ -633,10 +649,14 @@ button:focus-visible {
     font-family: var(--f-mono);
     font-size: 11px;
     font-weight: 500;
+    padding: 2px 7px;
+    background: var(--c-surface-2);
+    border-radius: 999px;
 }
 
 .tab[aria-selected="true"] .tab__count {
-    color: var(--c-muted);
+    color: var(--c-ink);
+    background: #F0F0F0;
 }
 
 .product-list {
@@ -650,8 +670,8 @@ button:focus-visible {
 .product-item {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 12px 0;
+    gap: 16px;
+    padding: 16px 0;
     border-bottom: 1px solid var(--c-line);
 }
 
@@ -663,21 +683,25 @@ button:focus-visible {
     color: var(--c-faint);
     font-family: var(--f-mono);
     font-size: 12px;
-    min-width: 36px;
+    min-width: 44px;
+    letter-spacing: 0.02em;
 }
 
 .product-item__name {
     flex: 1;
     color: var(--c-ink);
     font-size: 14px;
+    line-height: 1.45;
 }
 
 .product-item__status {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     color: var(--c-muted);
     font-size: 12px;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
 }
 
 .product-item__status .dot {
@@ -694,10 +718,11 @@ button:focus-visible {
 .product-item__status .dot--unknown { background: var(--c-unknown); }
 
 .product-empty {
-    padding: 24px 0;
+    padding: 40px 0;
     color: var(--c-faint);
     font-size: 13px;
     text-align: center;
+    letter-spacing: 0.02em;
 }
 
 /* =========================================================
@@ -707,7 +732,8 @@ button:focus-visible {
 .result-actions {
     display: grid;
     grid-template-columns: auto 1fr;
-    gap: 10px;
+    gap: 12px;
+    margin-top: 8px;
 }
 
 /* =========================================================
