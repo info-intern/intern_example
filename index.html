@@ -2,10 +2,184 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>intern_example</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+    <meta name="theme-color" content="#FFFFFF">
+    <title>棚卸し</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <h1>Hello World - intern_example</h1>
+    <div class="app">
+        <!-- =================== TOP BAR =================== -->
+        <header class="topbar">
+            <div class="topbar__left">
+                <span class="logo-dot" aria-hidden="true"></span>
+                <span class="topbar__title">棚卸し</span>
+            </div>
+            <div class="topbar__right">
+                <span class="status-tag" id="status-tag">待機中</span>
+            </div>
+        </header>
+
+        <!-- =================== HOME SCREEN =================== -->
+        <main class="screen screen-home" id="screen-home" data-active="true">
+            <section class="hero">
+                <h1 class="hero__title">棚卸し</h1>
+                <p class="hero__subtitle">カメレオンコードで在庫を確認</p>
+                <p class="hero__desc">棚全体を撮影し、商品マスタとの差分を確認します。</p>
+            </section>
+
+            <section class="meta">
+                <div class="meta__row">
+                    <span class="meta__key">対象</span>
+                    <span class="meta__val"><b>100</b><span class="meta__unit">件</span></span>
+                </div>
+                <div class="meta__row">
+                    <span class="meta__key">方式</span>
+                    <span class="meta__val">IroatoReader</span>
+                </div>
+                <div class="meta__row">
+                    <span class="meta__key">出力</span>
+                    <span class="meta__val">あり / なし / マスタ外</span>
+                </div>
+            </section>
+
+            <button class="cta" id="btn-start" type="button">
+                <span class="cta__label">読み取りを開始</span>
+                <span class="cta__arrow" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </span>
+            </button>
+
+            <footer class="foot">
+                <span>棚卸し確認</span>
+                <span class="foot__sep">·</span>
+                <span>v0.1</span>
+            </footer>
+        </main>
+
+        <!-- =================== SCAN SCREEN =================== -->
+        <main class="screen screen-scan" id="screen-scan" hidden>
+            <div class="viewfinder">
+                <span class="bracket bracket--tl"></span>
+                <span class="bracket bracket--tr"></span>
+                <span class="bracket bracket--bl"></span>
+                <span class="bracket bracket--br"></span>
+
+                <div class="viewfinder__camera" id="viewfinder-camera">
+                    <div class="grid-pattern"></div>
+                    <div class="scan-line"></div>
+                    <div class="detected-codes" id="detected-codes"></div>
+                </div>
+
+                <div class="hud hud--top">
+                    <span class="hud-pill">
+                        <span class="pulse"></span>
+                        <span>読み取り中</span>
+                    </span>
+                    <span class="hud-pill hud-pill--ghost" id="hud-elapsed">00:00</span>
+                </div>
+
+                <div class="hud hud--bottom">
+                    <div class="hud-stat">
+                        <div class="hud-stat__num" id="detected-count">0</div>
+                        <div class="hud-stat__label">認識コード数</div>
+                    </div>
+                </div>
+            </div>
+
+            <p class="scan-instruction">棚全体が画面に収まるように、ゆっくり構えてください。</p>
+
+            <div class="scan-actions">
+                <button class="ghost-btn" id="btn-cancel" type="button">
+                    <span>中止</span>
+                </button>
+                <button class="cta cta--compact" id="btn-finish" type="button">
+                    <span class="cta__label">読み取り完了</span>
+                    <span class="cta__arrow" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                    </span>
+                </button>
+            </div>
+        </main>
+
+        <!-- =================== RESULT SCREEN =================== -->
+        <main class="screen screen-result" id="screen-result" hidden>
+            <section class="result-header">
+                <h1 class="hero__title">読み取り結果</h1>
+                <time class="result-date" id="result-date">—</time>
+            </section>
+
+            <section class="result-summary">
+                <div class="summary-main">
+                    <span class="summary-main__num" id="found-count">—</span>
+                    <span class="summary-main__denom">/ 100</span>
+                </div>
+                <div class="summary-main__label">確認済み</div>
+
+                <div class="summary-progress">
+                    <div class="summary-progress__fill" id="progress-fill" style="width: 0%"></div>
+                </div>
+
+                <div class="summary-grid">
+                    <div class="summary-cell">
+                        <span class="summary-cell__dot summary-cell__dot--found"></span>
+                        <span class="summary-cell__num" id="sum-found">—</span>
+                        <span class="summary-cell__label">あり</span>
+                    </div>
+                    <div class="summary-cell">
+                        <span class="summary-cell__dot summary-cell__dot--missing"></span>
+                        <span class="summary-cell__num" id="sum-missing">—</span>
+                        <span class="summary-cell__label">なし</span>
+                    </div>
+                    <div class="summary-cell">
+                        <span class="summary-cell__dot summary-cell__dot--unknown"></span>
+                        <span class="summary-cell__num" id="sum-unknown">—</span>
+                        <span class="summary-cell__label">マスタ外</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="result-tabs">
+                <div class="tabs" role="tablist">
+                    <button class="tab" role="tab" data-tab="found" aria-selected="true">
+                        <span class="tab__label">あり</span>
+                        <span class="tab__count" id="tab-found">0</span>
+                    </button>
+                    <button class="tab" role="tab" data-tab="missing">
+                        <span class="tab__label">なし</span>
+                        <span class="tab__count" id="tab-missing">0</span>
+                    </button>
+                    <button class="tab" role="tab" data-tab="unknown">
+                        <span class="tab__label">マスタ外</span>
+                        <span class="tab__count" id="tab-unknown">0</span>
+                    </button>
+                </div>
+
+                <ul class="product-list" id="product-list">
+                    <!-- filled by JS -->
+                </ul>
+            </section>
+
+            <div class="result-actions">
+                <button class="ghost-btn" id="btn-export" type="button">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3v12m0 0-4-4m4 4 4-4M5 21h14"/></svg>
+                    <span>CSV出力</span>
+                </button>
+                <button class="cta cta--compact" id="btn-restart" type="button">
+                    <span class="cta__label">もう一度</span>
+                    <span class="cta__arrow" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 12a9 9 0 1 1-3-6.7M21 4v5h-5"/></svg>
+                    </span>
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/reader.js"></script>
+    <script src="js/inventory.js"></script>
+    <script src="js/main.js"></script>
 </body>
 </html>
