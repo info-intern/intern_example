@@ -6,10 +6,19 @@
 const Inventory = (() => {
 
     async function loadMaster(path = 'data/products.json') {
-        const res = await fetch(path);
-        if (!res.ok) throw new Error('商品マスタの読み込みに失敗しました');
-        const json = await res.json();
-        return json.products;
+        try {
+            const res = await fetch(path);
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const json = await res.json();
+            return json.products;
+        } catch (e) {
+            // file:// 直開きなどで fetch が使えない場合のフォールバック
+            if (window.__MASTER_FALLBACK__ && window.__MASTER_FALLBACK__.products) {
+                console.warn('fetch failed, using inline master fallback:', e.message);
+                return window.__MASTER_FALLBACK__.products;
+            }
+            throw new Error('商品マスタの読み込みに失敗しました');
+        }
     }
 
     /**

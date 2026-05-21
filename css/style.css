@@ -574,7 +574,7 @@ button:focus-visible {
 .summary-cell__head {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 14px;
 }
 
 .summary-cell__dot {
