@@ -1,124 +1,122 @@
 /**
  * reader.js
- * IroatoReader のラッパー。
- * 実機が無い環境では window.IroatoReader が未定義なのでモックを使用する。
+ * カメレオンコード読み取りレイヤー。
+ * - 実機（IroatoReader あり）… 1コード読み取り + 自動撮影（returnImage）
+ * - デモモード（PC ブラウザ等）… 読み取りをシミュレートし、ダミー写真を生成
  */
 
 const Reader = (() => {
     const isReal = typeof window.IroatoReader !== 'undefined';
 
     /**
-     * 読み取り開始
-     * @param {Object} opts
-     * @param {Array}    [opts.master]    商品マスタ [{ code, name }]。実機モードで displayData に使用
-     * @param {Function} opts.onProgress  認識中のコールバック ({ code, x, y })。モック専用
-     * @param {Function} opts.onFinish    完了時のコールバック (codes: string[])
-     * @param {Function} opts.onError     エラー時のコールバック
+     * 実機で1コード読み取る。
+     * @param {Function} onResult ({ code, photo, datetime }) photo は DataURL または null
+     * @param {Function} onError  (Error)
      */
-    function start({ master, onProgress, onFinish, onError }) {
-        if (isReal) {
-            return startReal({ master, onFinish, onError });
-        }
-        return startMock({ onProgress, onFinish, onError });
-    }
-
-    /* ---------- 実機モード ---------- */
-    function startReal({ master, onFinish, onError }) {
-        const options = {
-            mode: window.IroatoReader.multi,
+    function readReal({ onResult, onError }) {
+        const reader = new window.IroatoReader('cc', {
+            mode: window.IroatoReader.single,
             cameraType: window.IroatoReader.wide,
             resolution: window.IroatoReader.r1920x1080,
             analyzeLevel: 5,
-            labelText: '棚全体が画面に収まるように構えてください',
-            buttonText: '読み取り完了'
-        };
-
-        if (master && master.length) {
-            options.displayData = master.reduce((acc, p) => {
-                acc[p.code] = p.name;
-                return acc;
-            }, {});
-        }
-
-        const reader = new window.IroatoReader('cc', options);
+            returnImage: true,
+            imageWidth: 640,
+            labelText: 'カメレオンコードを枠内に収めてください',
+            buttonText: '読み取り'
+        });
 
         reader.read((res) => {
             if (!res || res.status === false) {
                 onError && onError(new Error('読み取りに失敗しました'));
                 return;
             }
-            const codes = (res.data?.codes || []).map(c => String(c.code));
-            onFinish && onFinish(codes);
-        });
-
-        // 実機モードは IroatoReader が画面を占有するため、cancel/finish は不要だが
-        // 呼び出し側との互換性のため no-op を返す
-        return {
-            finish() {},
-            cancel() {}
-        };
-    }
-
-    /* ---------- モックモード ---------- */
-    let mockTimer = null;
-    const mockState = { active: false, recognized: new Set() };
-
-    function startMock({ onProgress, onFinish, onError }) {
-        mockState.active = true;
-        mockState.recognized.clear();
-
-        // 1〜100 のうちランダムに 80〜95 件「認識」させる
-        const total = 100;
-        const willRecognize = Math.floor(Math.random() * 16) + 80; // 80..95
-        const pool = Array.from({ length: total }, (_, i) => String(i + 1));
-        shuffle(pool);
-        const targets = pool.slice(0, willRecognize);
-        // たまにマスタ外コードを混ぜる（101以上）
-        if (Math.random() > 0.4) {
-            targets.push(String(150 + Math.floor(Math.random() * 10)));
-        }
-
-        let idx = 0;
-        const interval = 120;
-
-        mockTimer = setInterval(() => {
-            if (!mockState.active) return;
-            if (idx >= targets.length) {
+            const code = (res.data?.codes || [])[0];
+            if (!code) {
+                onError && onError(new Error('コードを認識できませんでした'));
                 return;
             }
-            const code = targets[idx++];
-            mockState.recognized.add(code);
-            onProgress && onProgress({
-                code,
-                // ビューファインダ内のランダム座標 (%)
-                x: 10 + Math.random() * 80,
-                y: 10 + Math.random() * 80
-            });
-        }, interval);
-
-        return {
-            finish() {
-                if (!mockState.active) return;
-                mockState.active = false;
-                clearInterval(mockTimer);
-                mockTimer = null;
-                const codes = Array.from(mockState.recognized);
-                onFinish && onFinish(codes);
-            },
-            cancel() {
-                mockState.active = false;
-                clearInterval(mockTimer);
-                mockTimer = null;
+            let photo = null;
+            const raw = code.imageKey ? res.data.images?.[code.imageKey] : null;
+            if (raw) {
+                photo = raw.startsWith('data:') ? raw : `data:image/jpeg;base64,${raw}`;
             }
-        };
+            onResult && onResult({
+                code: String(code.code),
+                photo,
+                datetime: code.datetime || Util.formatDateTime(new Date())
+            });
+        });
     }
 
-    function shuffle(arr) {
-        for (let i = arr.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [arr[i], arr[j]] = [arr[j], arr[i]];
+    /**
+     * デモ用：スコープ内からターゲットを1件選ぶ（未チェック優先）。
+     */
+    function pickDemoTarget(scopeItems) {
+        const unchecked = scopeItems.filter(it => !it.checked);
+        const pool = unchecked.length ? unchecked : scopeItems;
+        return pool[Math.floor(Math.random() * pool.length)] || null;
+    }
+
+    /**
+     * デモ用：自動撮影された風のダミー写真を Canvas で生成する。
+     * @returns {string} DataURL
+     */
+    function makeDemoPhoto(item, datetime) {
+        const w = 640, h = 480;
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        const ctx = cv.getContext('2d');
+
+        // 背景（薄暗い倉庫風グラデーション）
+        const bg = ctx.createLinearGradient(0, 0, 0, h);
+        bg.addColorStop(0, '#3a362f');
+        bg.addColorStop(1, '#23211d');
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, w, h);
+
+        // 棚のシルエット
+        ctx.fillStyle = 'rgba(255,255,255,0.05)';
+        for (let i = 0; i < 4; i++) {
+            ctx.fillRect(40, 90 + i * 95, w - 80, 8);
         }
+        ctx.fillStyle = 'rgba(255,255,255,0.08)';
+        [70, 230, 380, 500].forEach((x, i) => {
+            ctx.fillRect(x, 130 + (i % 2) * 95, 90 + (i % 3) * 20, 55);
+        });
+
+        // 中央のコードラベル
+        const cx = w / 2, cy = h / 2;
+        ctx.fillStyle = '#f3efe6';
+        ctx.fillRect(cx - 130, cy - 78, 260, 156);
+        ctx.strokeStyle = '#c8401f';
+        ctx.lineWidth = 6;
+        ctx.strokeRect(cx - 130, cy - 78, 260, 156);
+
+        ctx.fillStyle = '#23211d';
+        ctx.textAlign = 'center';
+        ctx.font = '700 18px "IBM Plex Mono", monospace';
+        ctx.fillText('CHAMELEON CODE', cx, cy - 42);
+        ctx.font = '700 52px "IBM Plex Mono", monospace';
+        ctx.fillStyle = '#c8401f';
+        ctx.fillText(`No.${item.ccCode}`, cx, cy + 16);
+        ctx.font = '500 17px "Zen Kaku Gothic New", sans-serif';
+        ctx.fillStyle = '#23211d';
+        ctx.fillText(item.id, cx, cy + 52);
+
+        // タイムスタンプ帯
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.fillRect(0, h - 40, w, 40);
+        ctx.fillStyle = '#ffd863';
+        ctx.textAlign = 'right';
+        ctx.font = '500 18px "IBM Plex Mono", monospace';
+        ctx.fillText(datetime, w - 16, h - 14);
+        ctx.textAlign = 'left';
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.font = '500 15px "Zen Kaku Gothic New", sans-serif';
+        ctx.fillText('● DEMO CAMERA', 16, h - 14);
+
+        return cv.toDataURL('image/jpeg', 0.85);
     }
 
-    return { start, isMock: !isReal };
+    return { isReal, readReal, pickDemoTarget, makeDemoPhoto };
 })();

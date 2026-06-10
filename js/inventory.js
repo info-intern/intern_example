@@ -1,53 +1,33 @@
 /**
  * inventory.js
- * 商品マスタと認識結果を突合するロジック。
+ * 棚卸セッション（回）の管理と進捗計算。
  */
 
 const Inventory = (() => {
+    let session = Store.loadSession();
 
-    async function loadMaster(path = 'data/products.json') {
-        try {
-            const res = await fetch(path);
-            if (!res.ok) throw new Error('HTTP ' + res.status);
-            const json = await res.json();
-            return json.products;
-        } catch (e) {
-            // file:// 直開きなどで fetch が使えない場合のフォールバック
-            if (window.__MASTER_FALLBACK__ && window.__MASTER_FALLBACK__.products) {
-                console.warn('fetch failed, using inline master fallback:', e.message);
-                return window.__MASTER_FALLBACK__.products;
-            }
-            throw new Error('商品マスタの読み込みに失敗しました');
-        }
-    }
+    function current() { return session; }
 
     /**
-     * 認識結果とマスタを突合する。
-     * @param {Array} master      [{ code, name }]
-     * @param {Array<string>} recognized 認識されたコード配列（重複可）
-     * @returns {{ found: Array, missing: Array, unknown: Array }}
+     * 新しい回を開始する。
+     * 回数を +1 し、全備品のチェック・写真をリセットする。
      */
-    function diff(master, recognized) {
-        const recognizedSet = new Set(recognized.map(String));
-        const masterCodes = new Set(master.map(p => p.code));
-
-        const found = [];
-        const missing = [];
-
-        master.forEach(p => {
-            if (recognizedSet.has(p.code)) {
-                found.push(p);
-            } else {
-                missing.push(p);
-            }
-        });
-
-        const unknown = Array.from(recognizedSet)
-            .filter(c => !masterCodes.has(c))
-            .map(c => ({ code: c, name: '(マスタに未登録)' }));
-
-        return { found, missing, unknown };
+    async function startNewRound() {
+        await Equipment.resetChecks();
+        session = {
+            round: session.round + 1,
+            startedAt: Util.formatDateTime(new Date())
+        };
+        Store.saveSession(session);
+        return session;
     }
 
-    return { loadMaster, diff };
+    /** items のチェック進捗 { done, total, pct } */
+    function progress(items) {
+        const total = items.length;
+        const done = items.filter(it => it.checked).length;
+        return { done, total, pct: total === 0 ? 0 : Math.round((done / total) * 100) };
+    }
+
+    return { current, startNewRound, progress };
 })();
