@@ -441,12 +441,27 @@
     /* ---------- 撮影確認ダイアログ ---------- */
 
     function openConfirm({ item, photo, datetime }) {
-        state.pendingScan = { item, photo, datetime };
-        $('#confirm-photo').src = photo;
-        $('#confirm-id').textContent = item.id;
-        $('#confirm-name').textContent = item.name;
-        $('#confirm-time').textContent = datetime;
-        $('#modal-confirm').hidden = false;
+        try {
+            state.pendingScan = { item, photo, datetime };
+            const m = $('#modal-confirm');
+            $('#confirm-photo').src = photo || '';
+            $('#confirm-id').textContent = item.id;
+            $('#confirm-name').textContent = item.name;
+            $('#confirm-time').textContent = datetime;
+            m.hidden = false;
+            const cs = window.getComputedStyle(m);
+            dbg('openConfirm後 hidden=', m.hidden, 'display=', cs.display,
+                'size=', m.offsetWidth + 'x' + m.offsetHeight, 'photoLen=', (photo || '').length);
+            // 600ms後に再確認。ここが出ずに boot 行が出るならページがリロードされている。
+            setTimeout(function () {
+                const m2 = $('#modal-confirm');
+                const cs2 = window.getComputedStyle(m2);
+                dbg('openConfirm+600ms hidden=', m2.hidden, 'display=', cs2.display,
+                    'size=', m2.offsetWidth + 'x' + m2.offsetHeight);
+            }, 600);
+        } catch (e) {
+            dbg('openConfirm例外:', String((e && e.stack) || e));
+        }
     }
 
     function closeConfirm() {
