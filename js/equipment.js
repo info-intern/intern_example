@@ -29,7 +29,12 @@ const Equipment = (() => {
         );
     }
 
-    /** 既存 id の最大番号 + 1 */
+    // カメレオンコードは 1〜100 の物理ラベルが現物に貼られている前提。
+    // 管理番号(EQ-XXXX)とは別物なので、コード番号はこのプールから採番する。
+    const CC_MIN = 1;
+    const CC_MAX = 100;
+
+    /** 管理番号の連番（既存 id の最大番号 + 1）。コード番号とは独立 */
     function nextNumber() {
         const max = list.reduce((m, it) => {
             const n = parseInt(String(it.id).replace(/\D/g, ''), 10);
@@ -38,12 +43,25 @@ const Equipment = (() => {
         return max + 1;
     }
 
-    /** 新規登録。管理番号・カメレオンコード番号を自動発番して返す */
+    /** 未使用のカメレオンコード番号（1〜100 の最小の空き）。全て使用中なら null */
+    function nextCcCode() {
+        const used = new Set(list.map(it => Number(it.ccCode)));
+        for (let n = CC_MIN; n <= CC_MAX; n++) {
+            if (!used.has(n)) return n;
+        }
+        return null;
+    }
+
+    /**
+     * 新規登録。管理番号は連番、カメレオンコード番号は 1〜100 の空きから採番する。
+     * コードの空きが無い場合は登録せず null を返す。
+     */
     function create({ name, modelNumber, manager, location, category, status }) {
-        const n = nextNumber();
+        const cc = nextCcCode();
+        if (cc === null) return null;   // 1〜100 のコードがすべて使用中
         const item = {
-            id: `EQ-${String(n).padStart(4, '0')}`,
-            ccCode: String(n),
+            id: `EQ-${String(nextNumber()).padStart(4, '0')}`,
+            ccCode: String(cc),
             name, modelNumber, manager, location, category, status,
             checked: false,
             checkedAt: null,

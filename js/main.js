@@ -623,6 +623,15 @@
             show('manage');
         } else {
             const created = Equipment.create(fields);
+            if (!created) {
+                dialog({
+                    eyebrow: '新規登録',
+                    title: 'カメレオンコードに空きがありません',
+                    body: 'カメレオンコード（1〜100）がすべて使用中です。不要な備品を削除してから登録してください。',
+                    okLabel: '閉じる'
+                });
+                return;
+            }
             show('manage');
             dialog({
                 eyebrow: '新規登録',

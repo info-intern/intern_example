@@ -43,7 +43,7 @@ for (const f of files) {
         location: '本社', category: '社内備品', status: '使用中'
     });
     assert.strictEqual(created.id, 'EQ-0040', '管理番号は EQ-0040 が発行されること');
-    assert.strictEqual(created.ccCode, '40', 'CCコードは管理番号と同じ番号');
+    assert.strictEqual(created.ccCode, '40', 'CCコードは1〜100の最小の空き（40）が採番されること');
     assert.strictEqual(Equipment.byCcCode('40').id, 'EQ-0040', 'CCコードで逆引きできること');
 
     /* 4. チェック + 画像保存（メモリフォールバック） */
@@ -92,12 +92,26 @@ for (const f of files) {
     assert.strictEqual(Equipment.byId('EQ-0040'), null, '削除できること');
     assert.strictEqual(Equipment.all().length, 39);
 
-    /* 10. 再発番は欠番を再利用しない（最大+1） */
+    /* 10. 管理番号は最大+1、コードは1〜100の最小の空き（この時点では一致） */
     const again = Equipment.create({
         name: '再登録', modelNumber: '', manager: '',
         location: '本社', category: '社内備品', status: '使用中'
     });
-    assert.strictEqual(again.id, 'EQ-0040', '最大番号+1で発番されること');
+    assert.strictEqual(again.id, 'EQ-0040', '管理番号は最大+1で発番されること');
+    assert.strictEqual(again.ccCode, '40', 'コードは1〜100の空き（40）が採番されること');
+
+    /* 11. コードは管理番号と独立し、1〜100の欠番を埋める（採番修正の検証） */
+    // 低い番号のコードを空ける（EQ-0003 = コード3 を削除）
+    await Equipment.remove('EQ-0003');
+    const filled = Equipment.create({
+        name: '欠番埋めテスト', modelNumber: '', manager: '',
+        location: '本社', category: '社内備品', status: '使用中'
+    });
+    assert.strictEqual(filled.ccCode, '3', 'コードは空いた最小番号（3）を再利用すること');
+    assert.strictEqual(filled.id, 'EQ-0041', '管理番号はコードと独立して連番を進めること');
+    const ccNum = Number(filled.ccCode);
+    assert.ok(ccNum >= 1 && ccNum <= 100, 'コードは必ず1〜100の範囲であること');
+    assert.strictEqual(Equipment.byCcCode('3').id, 'EQ-0041', '再利用コードで逆引きできること');
 
     console.log('OK: smoke test passed (11 sections)');
 })().catch(err => {
