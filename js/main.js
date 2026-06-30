@@ -20,8 +20,10 @@
         screen: 'site',
         site: null,          // 棚卸フローで選択中の拠点
         category: null,      // 棚卸フローで選択中の対象区分
+        sheetFilter: 'all',  // 実施画面の表示フィルタ all | undone | done
         manageSite: null,    // 台帳フィルタ（null = すべて）
         manageCat: null,
+        manageQuery: '',     // 台帳のテキスト検索
         editingId: null,     // 編集中の備品 id（null = 新規）
         pendingScan: null,   // 保存確認待ち { item, photo, datetime }
         stampTarget: null    // 直前に「済」にした id（押印アニメ用）
@@ -32,9 +34,10 @@
         target: $('#screen-target'),
         sheet:  $('#screen-sheet'),
         manage: $('#screen-manage'),
-        form:   $('#screen-form')
+        form:   $('#screen-form'),
+        result: $('#screen-result')
     };
-    const backMap = { target: 'site', sheet: 'target', manage: 'site', form: 'manage' };
+    const backMap = { target: 'site', sheet: 'target', manage: 'site', form: 'manage', result: 'site' };
 
     /* ================= 画面遷移 ================= */
 
@@ -45,7 +48,7 @@
             el.dataset.active = String(k === name);
         });
         $('#btn-back').hidden = !(name in backMap);
-        $('#btn-manage').hidden = (name === 'manage' || name === 'form');
+        $('#btn-manage').hidden = (name === 'manage' || name === 'form' || name === 'result');
         render(name);
         window.scrollTo({ top: 0, behavior: 'instant' });
     }
@@ -57,6 +60,7 @@
         if (name === 'sheet')  renderSheet();
         if (name === 'manage') renderManage();
         if (name === 'form')   renderForm();
+        if (name === 'result') renderResult();
     }
 
     $('#btn-back').addEventListener('click', () => {
@@ -114,7 +118,23 @@
 
     /* ================= ① 拠点選択 ================= */
 
+    function renderOverallSummary() {
+        const s = Inventory.summary();
+        $('#overall-summary').innerHTML = `
+            <div class="summary__top">
+                <span class="summary__label">第${s.round}回 全体の進捗</span>
+                <span class="summary__pct"><b>${s.pct}</b>%</span>
+            </div>
+            <div class="summary__bar"><div class="summary__fill" style="width:${s.pct}%"></div></div>
+            <div class="summary__foot">
+                <span class="summary__nums"><b>${s.done}</b> / ${s.total} 点 確認済</span>
+                <button class="ghost-btn ghost-btn--small" id="btn-view-result" type="button">結果を見る →</button>
+            </div>`;
+        $('#btn-view-result').addEventListener('click', () => show('result'));
+    }
+
     function renderSite() {
+        renderOverallSummary();
         const session = Inventory.current();
         $('#round-num').textContent = `第${session.round}回`;
         $('#round-date').textContent = `${Util.formatDateShort(session.startedAt)} 開始`;
@@ -206,16 +226,33 @@
         $('#sheet-total').textContent = p.total;
         $('#sheet-fill').style.width = p.pct + '%';
 
+        // フィルタ表示（進捗はスコープ全体、表示だけ絞る）
+        const visible = items.filter(it =>
+            state.sheetFilter === 'undone' ? !it.checked :
+            state.sheetFilter === 'done'   ? it.checked  : true
+        );
+
         const list = $('#sheet-list');
         list.innerHTML = '';
-        $('#sheet-empty').hidden = items.length > 0;
+        const emptyNote = $('#sheet-empty');
+        if (items.length === 0) {
+            emptyNote.textContent = 'この拠点・対象に登録された備品はありません。';
+            emptyNote.hidden = false;
+        } else if (visible.length === 0) {
+            emptyNote.textContent = state.sheetFilter === 'undone'
+                ? 'すべて確認済みです。' : '確認済みの備品はまだありません。';
+            emptyNote.hidden = false;
+        } else {
+            emptyNote.hidden = true;
+        }
         $('#btn-scan').disabled = items.length === 0;
 
-        items.forEach((it, i) => {
+        visible.forEach((it, i) => {
             const li = document.createElement('li');
             li.className = 'sheet-row' + (it.checked ? ' is-done' : '');
             li.style.animationDelay = `${Math.min(i * 0.04, 0.4)}s`;
             const justStamped = state.stampTarget === it.id;
+            const manual = it.checked && !it.imageKey;
             li.innerHTML = `
                 <button class="stamp ${it.checked ? 'stamp--done' : ''} ${justStamped ? 'is-stamping' : ''}"
                         type="button" data-id="${esc(it.id)}"
@@ -226,6 +263,7 @@
                     <div class="sheet-row__line1">
                         <span class="sheet-row__id mono">${esc(it.id)}</span>
                         ${statusPill(it)}
+                        ${manual ? '<span class="pill pill--manual">手動</span>' : ''}
                     </div>
                     <div class="sheet-row__name">${esc(it.name)}</div>
                     <div class="sheet-row__meta">${esc(it.modelNumber || '型番なし')}・${esc(it.manager || '—')}</div>
@@ -294,6 +332,16 @@
 
     $('#btn-scan').addEventListener('click', startScan);
 
+    // 未/済フィルタ（1度だけバインド。状態を変えて再描画）
+    $('#sheet-filter').addEventListener('click', (e) => {
+        const btn = e.target.closest('.toggle__btn');
+        if (!btn) return;
+        state.sheetFilter = btn.dataset.filter;
+        $('#sheet-filter').querySelectorAll('.toggle__btn').forEach(b =>
+            b.classList.toggle('is-on', b === btn));
+        renderSheet();
+    });
+
     function startScan() {
         const items = scopeItems();
         if (!items.length) { toast('対象の備品がありません'); return; }
@@ -324,15 +372,27 @@
             });
             return;
         }
-        if (item.location !== state.site || item.category !== state.category) {
-            toast(`注意: ${item.location}・${item.category} の備品です`);
-        }
         const dt = datetime || Util.formatDateTime(new Date());
-        openConfirm({
+        const proceed = () => openConfirm({
             item,
             photo: photo || Reader.makeDemoPhoto(item, dt),
             datetime: dt
         });
+
+        // 取り違え防止：選択中の拠点・対象と異なる備品は確認してから記録
+        if (item.location !== state.site || item.category !== state.category) {
+            dialog({
+                eyebrow: '取り違えの確認',
+                title: '別の対象の備品です',
+                body: `読み取った備品は「${item.location}・${item.category}」です。`
+                    + `いま棚卸中の「${state.site}・${state.category}」ではありません。`
+                    + `それでもこの備品を記録しますか？`,
+                okLabel: 'この備品を記録する',
+                onOk: proceed
+            });
+            return;
+        }
+        proceed();
     }
 
     /* ---------- デモ読み取りオーバーレイ ---------- */
@@ -392,7 +452,10 @@
         await Equipment.setChecked(pending.item.id, true, pending.datetime, key);
         state.stampTarget = pending.item.id;
         closeConfirm();
-        toast(`${pending.item.id} を「済」として記録しました`);
+        const remaining = scopeItems().filter(it => !it.checked).length;
+        toast(remaining > 0
+            ? `${pending.item.id} を記録しました（残り ${remaining} 件）`
+            : `${pending.item.id} を記録しました。この対象は完了です`);
         if (state.screen === 'sheet') renderSheet();
     });
 
@@ -415,7 +478,15 @@
             renderManage();
         });
 
-        const items = Equipment.filtered(state.manageSite, state.manageCat);
+        let items = Equipment.filtered(state.manageSite, state.manageCat);
+        const q = state.manageQuery.trim().toLowerCase();
+        if (q) {
+            items = items.filter(it =>
+                it.name.toLowerCase().includes(q) ||
+                it.id.toLowerCase().includes(q) ||
+                String(it.ccCode).includes(q)
+            );
+        }
         $('#manage-count').textContent = items.length;
         $('#manage-empty').hidden = items.length > 0;
 
@@ -459,6 +530,12 @@
     $('#btn-add').addEventListener('click', () => {
         state.editingId = null;
         show('form');
+    });
+
+    // 台帳検索（入力のたびに再描画。一覧だけ更新し検索欄はフォーカス維持）
+    $('#manage-search').addEventListener('input', (e) => {
+        state.manageQuery = e.target.value;
+        renderManage();
     });
 
     /* ================= 登録 / 編集フォーム ================= */
@@ -573,6 +650,96 @@
             }
         });
     });
+
+    /* ================= 棚卸結果 ================= */
+
+    function renderResult() {
+        const s = Inventory.summary();
+        $('#result-round').textContent = `第${s.round}回`;
+
+        const breakdown = s.byLocation.map(b => {
+            const complete = b.total > 0 && b.done === b.total;
+            return `
+                <div class="bd-row">
+                    <span class="bd-row__name">${esc(b.location)}</span>
+                    <span class="bd-row__nums mono">${b.done} / ${b.total}</span>
+                    <div class="bd-row__bar"><div class="bd-row__fill ${complete ? 'is-complete' : ''}" style="width:${b.pct}%"></div></div>
+                </div>`;
+        }).join('');
+
+        let pendingHtml;
+        if (s.pending === 0) {
+            pendingHtml = `<div class="result-alldone">✓ すべての備品の所在を確認しました</div>`;
+        } else {
+            pendingHtml = s.pendingGroups.map(g => `
+                <div class="miss-group">
+                    <div class="miss-group__head">${esc(g.location)}（${g.items.length}件）</div>
+                    <ul class="miss-list">
+                        ${g.items.map(it => `
+                            <li class="miss-item">
+                                <span class="miss-item__id">${esc(it.id)}</span>
+                                <span class="miss-item__name">${esc(it.name)}</span>
+                                <span class="miss-item__meta">${esc(it.category)}</span>
+                            </li>`).join('')}
+                    </ul>
+                </div>`).join('');
+        }
+
+        $('#result-body').innerHTML = `
+            <div class="result-hero">
+                <div class="result-hero__pct">${s.pct}<span>%</span></div>
+                <div class="result-hero__nums"><b>${s.done}</b> / ${s.total} 点 確認済 ・ 未確認 <b>${s.pending}</b> 件</div>
+                <div class="result-hero__bar"><div class="result-hero__fill" style="width:${s.pct}%"></div></div>
+            </div>
+            <section class="result-section">
+                <div class="result-section__title">拠点別の進捗</div>
+                ${breakdown}
+            </section>
+            <section class="result-section">
+                <div class="result-section__title">未確認（所在未確認）<span class="result-section__count">${s.pending} 件</span></div>
+                ${pendingHtml}
+            </section>`;
+    }
+
+    /** クリップボード用の結果テキスト（未確認リストが主役） */
+    function buildResultText() {
+        const s = Inventory.summary();
+        const lines = [];
+        lines.push(`■ 備品棚卸 結果（第${s.round}回）`);
+        lines.push(`確認済 ${s.done} / 全 ${s.total} 件（${s.pct}%）／ 未確認 ${s.pending} 件`);
+        lines.push('');
+        if (s.pending === 0) {
+            lines.push('未確認の備品はありません。すべて確認済みです。');
+        } else {
+            lines.push('【未確認（所在未確認）の備品】');
+            s.pendingGroups.forEach(g => {
+                lines.push(`◇ ${g.location}`);
+                g.items.forEach(it => lines.push(`  - ${it.id} ${it.name}（${it.category}）`));
+            });
+        }
+        return lines.join('\n');
+    }
+
+    async function copyResult() {
+        const text = buildResultText();
+        try {
+            await navigator.clipboard.writeText(text);
+            toast('結果をコピーしました');
+            return;
+        } catch (e) { /* クリップボードAPI不可 → フォールバック */ }
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); toast('結果をコピーしました'); }
+        catch (_) { toast('コピーできませんでした'); }
+        document.body.removeChild(ta);
+    }
+
+    $('#btn-result-copy').addEventListener('click', copyResult);
+    $('#btn-result-back').addEventListener('click', () => show(backMap.result));
 
     /* ================= 初期化 ================= */
 

@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-    <meta name="theme-color" content="#F6F2EA">
+    <meta name="theme-color" content="#FFFFFF">
     <title>備品棚卸台帳</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@600;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -39,6 +39,8 @@
                 <h1 class="lede__title">拠点を選ぶ</h1>
                 <p class="lede__desc">棚卸を実施する拠点を選択してください。</p>
             </section>
+
+            <section class="summary" id="overall-summary"><!-- JSで生成 --></section>
 
             <ol class="choice-list" id="site-list"><!-- JSで生成 --></ol>
 
@@ -82,6 +84,11 @@
                     </div>
                     <div class="sheet-progress__bar"><div class="sheet-progress__fill" id="sheet-fill"></div></div>
                 </div>
+                <div class="toggle" id="sheet-filter" role="tablist">
+                    <button class="toggle__btn is-on" type="button" data-filter="all" role="tab">すべて</button>
+                    <button class="toggle__btn" type="button" data-filter="undone" role="tab">未確認</button>
+                    <button class="toggle__btn" type="button" data-filter="done" role="tab">確認済</button>
+                </div>
             </section>
 
             <ul class="sheet-list" id="sheet-list"><!-- JSで生成 --></ul>
@@ -109,6 +116,11 @@
                     <span class="cta__label">＋ 新規登録</span>
                 </button>
             </section>
+
+            <div class="search">
+                <input id="manage-search" type="search" inputmode="search" autocomplete="off"
+                       placeholder="商品名・管理番号・コード番号で検索">
+            </div>
 
             <div class="filters">
                 <div class="filter-row" id="filter-site"><!-- JSで生成 --></div>
@@ -165,6 +177,22 @@
                     <button class="ghost-btn ghost-btn--danger" id="btn-delete" type="button" hidden>この備品を削除</button>
                 </div>
             </form>
+        </main>
+
+        <!-- =================== 棚卸結果 =================== -->
+        <main class="screen" id="screen-result" hidden>
+            <section class="lede">
+                <p class="lede__eyebrow">棚卸結果</p>
+                <h1 class="lede__title">棚卸結果</h1>
+                <p class="lede__desc"><span class="loc-tag" id="result-round">第1回</span> の確認状況です。</p>
+            </section>
+
+            <div id="result-body"><!-- JSで生成 --></div>
+
+            <div class="result-actions">
+                <button class="cta" id="btn-result-copy" type="button"><span class="cta__label">結果をコピー</span></button>
+                <button class="ghost-btn" id="btn-result-back" type="button">棚卸に戻る</button>
+            </div>
         </main>
     </div>
 

@@ -59,6 +59,18 @@ for (const f of files) {
     assert.strictEqual(p.done, 1, '本社・社内備品の済は1件');
     assert.strictEqual(p.total, 6, '本社・社内備品は6件（テスト備品含む）');
 
+    /* 5b. 棚卸結果サマリ */
+    const sum = Inventory.summary();
+    assert.strictEqual(sum.total, 40, 'サマリ合計は40件');
+    assert.strictEqual(sum.done, 1, 'サマリ確認済は1件（EQ-0040）');
+    assert.strictEqual(sum.pending, 39, 'サマリ未確認は39件');
+    assert.strictEqual(sum.byLocation.length, 4, '拠点別は4拠点ぶん');
+    assert.strictEqual(sum.byLocation.reduce((a, b) => a + b.total, 0), 40, '拠点別合計は全件と一致');
+    assert.ok(sum.pendingGroups.every(g => g.items.length > 0), '未確認グループに空は含まれない');
+    assert.strictEqual(
+        sum.pendingGroups.reduce((a, g) => a + g.items.length, 0), 39,
+        '未確認グループの総数は未確認件数と一致');
+
     /* 6. チェック解除（写真は残る） */
     await Equipment.setChecked('EQ-0040', false);
     assert.strictEqual(Equipment.byId('EQ-0040').checked, false);
@@ -87,7 +99,7 @@ for (const f of files) {
     });
     assert.strictEqual(again.id, 'EQ-0040', '最大番号+1で発番されること');
 
-    console.log('OK: smoke test passed (10 sections)');
+    console.log('OK: smoke test passed (11 sections)');
 })().catch(err => {
     console.error('NG:', err.message);
     process.exit(1);
