@@ -55,7 +55,7 @@
             <footer class="foot">
                 <span id="mode-tag">デモモード</span>
                 <span class="foot__sep">·</span>
-                <span>v2.1-debug-O</span>
+                <span>v2.1</span>
             </footer>
         </main>
 
@@ -274,96 +274,11 @@
 
     <div class="toast" id="toast" hidden></div>
 
-    <!-- =================== 実機デバッグログ（一時的・原因切り分け後に削除する） =================== -->
-    <style>
-        .dbg-toggle { position: fixed; right: 10px; bottom: 10px; z-index: 10000;
-            width: 44px; height: 44px; border-radius: 50%; border: none;
-            background: rgba(20,20,24,.88); color: #fff; font-size: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,.45); }
-        .dbg { position: fixed; left: 0; right: 0; bottom: 0; z-index: 9999;
-            max-height: 46vh; display: flex; flex-direction: column;
-            background: rgba(12,14,18,.97); color: #d6f5c8; border-top: 2px solid #4ad7ff; }
-        .dbg__bar { display: flex; align-items: center; gap: 8px; padding: 6px 10px;
-            background: rgba(255,255,255,.08); font: 700 12px monospace; }
-        .dbg__title { flex: 1; color: #9fe0ff; letter-spacing: .04em; }
-        .dbg__bar button { background: rgba(255,255,255,.16); border: none; color: #fff;
-            border-radius: 4px; padding: 3px 10px; font: 700 12px monospace; }
-        .dbg__body { margin: 0; padding: 8px 10px; overflow: auto;
-            font: 500 11px/1.5 ui-monospace, monospace; white-space: pre-wrap; word-break: break-all; }
-    </style>
-    <div class="dbg" id="dbg" hidden>
-        <div class="dbg__bar">
-            <span class="dbg__title">DEBUG LOG</span>
-            <button id="dbg-clear" type="button">clear</button>
-            <button id="dbg-close" type="button">閉じる</button>
-        </div>
-        <pre class="dbg__body" id="dbg-body"></pre>
-    </div>
-    <button class="dbg-toggle" id="dbg-toggle" type="button" aria-label="デバッグログ">🐞</button>
-    <script>
-    (function () {
-        // ★ページ再読み込みをまたいでも残るよう localStorage に保存する。
-        //   IroatoReader が読み取り時にページをリロード／再生成するタイプだと、
-        //   メモリ上のログもコールバックも消えるため、ここで永続化して切り分ける。
-        var LS_KEY = 'dbg.log.v1';
-        var MAX = 200;
-        var lines = [];
-        try { lines = JSON.parse(localStorage.getItem(LS_KEY) || '[]') || []; } catch (_) { lines = []; }
-
-        function pad(n) { return String(n).padStart(2, '0'); }
-        function ts() { var d = new Date(); return pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()); }
-        function fmt(a) {
-            if (typeof a === 'string') return a;
-            try { return JSON.stringify(a); } catch (_) { return String(a); }
-        }
-        function persist() {
-            try { localStorage.setItem(LS_KEY, JSON.stringify(lines.slice(-MAX))); } catch (_) {}
-        }
-        function render() {
-            var el = document.getElementById('dbg-body');
-            if (el) { el.textContent = lines.slice(-MAX).join('\n'); el.scrollTop = el.scrollHeight; }
-        }
-        window.DBG = {
-            log: function () {
-                var msg = Array.prototype.map.call(arguments, fmt).join(' ');
-                lines.push(ts() + ' ' + msg);
-                if (lines.length > MAX) lines = lines.slice(-MAX);
-                persist();
-                render();
-                var p = document.getElementById('dbg');
-                if (p && p.hidden) p.hidden = false;
-            },
-            clear: function () { lines = []; persist(); render(); }
-        };
-        // 握り潰される例外も拾う
-        window.addEventListener('error', function (e) {
-            window.DBG.log('[window.error]', e.message, (e.filename || '') + ':' + (e.lineno || ''));
-        });
-        window.addEventListener('unhandledrejection', function (e) {
-            window.DBG.log('[unhandledrejection]', String(e && e.reason));
-        });
-        document.addEventListener('DOMContentLoaded', function () {
-            var p = document.getElementById('dbg');
-            var t = document.getElementById('dbg-toggle');
-            var c = document.getElementById('dbg-close');
-            var cl = document.getElementById('dbg-clear');
-            if (t) t.addEventListener('click', function () { p.hidden = !p.hidden; });
-            if (c) c.addEventListener('click', function () { p.hidden = true; });
-            if (cl) cl.addEventListener('click', function () { window.DBG.clear(); });
-            render();
-            // ★boot 行が読み取りのたびに増える＝ページがリロードされている証拠。
-            //   戻ってきたときの URL（クエリ/ハッシュに結果が載る実装かを確認）も記録。
-            window.DBG.log('===== boot ===== v2.1-debug-O IroatoReader=', (typeof window.IroatoReader),
-                'href=', location.href);
-        });
-    })();
-    </script>
-
-    <script src="js/seed-data.js?v=o"></script>
-    <script src="js/storage.js?v=o"></script>
-    <script src="js/equipment.js?v=o"></script>
-    <script src="js/inventory.js?v=o"></script>
-    <script src="js/reader.js?v=o"></script>
-    <script src="js/main.js?v=o"></script>
+    <script src="js/seed-data.js?v=1"></script>
+    <script src="js/storage.js?v=1"></script>
+    <script src="js/equipment.js?v=1"></script>
+    <script src="js/inventory.js?v=1"></script>
+    <script src="js/reader.js?v=1"></script>
+    <script src="js/main.js?v=1"></script>
 </body>
 </html>

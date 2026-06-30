@@ -19,16 +19,9 @@ const Reader = (() => {
      * @param {Function} onResult ({ code, photo, datetime }) photo は DataURL または null
      * @param {Function} onError  (Error)
      */
-    /** 画面デバッグログ（コンソールが使えない実機向け。確認後に外す想定） */
-    function dbg(...a) { try { window.DBG && window.DBG.log('[reader]', ...a); } catch (_) {} }
-
     function readReal({ onResult, onError }) {
-        const hasReader = typeof window.IroatoReader;
-        const singleVal = (window.IroatoReader && window.IroatoReader.single);
-        dbg('readReal開始 IroatoReader=', hasReader, 'single=', String(singleVal));
-
         // カメラ認識時にコード番号ではなく「紐づく商品名」を表示する。
-        // リファレンス displayData: { "<コード番号>": "<表示文字列>" } 形式。
+        // displayData は { "<コード番号>": "<表示文字列>" } 形式（リファレンス準拠）。
         // 台帳(Equipment)の ccCode→name で対応表を作る。
         const displayData = {};
         try {
@@ -36,14 +29,10 @@ const Reader = (() => {
             allItems.forEach((it) => {
                 if (it && it.ccCode != null) displayData[String(it.ccCode)] = it.name;
             });
-            dbg('displayData件数=', Object.keys(displayData).length);
-        } catch (e) {
-            dbg('displayData生成失敗:', String(e));
-        }
+        } catch (_) { /* displayData が作れなくても読み取り自体は続行する */ }
 
-        // リファレンス(Ver.1.4.0)の read シグネチャは read(<オプション>, <コールバック>)。
-        // オプションはコンストラクタと read の両方で同形式を受け付けるため、同じ
-        // オプションオブジェクトを使い回す（値が同一なので二重指定でも齟齬は出ない）。
+        // リファレンス(Ver.1.4.0): read(<オプション>, <コールバック>)。オプションは
+        // コンストラクタと read の両方が同形式を受け付けるため使い回す。
         const options = {
             mode: window.IroatoReader.single,
             cameraType: window.IroatoReader.wide,
@@ -59,42 +48,21 @@ const Reader = (() => {
         let reader;
         try {
             reader = new window.IroatoReader('cc', options);
-            dbg('readerコンストラクタOK');
         } catch (err) {
-            dbg('コンストラクタ例外:', String((err && err.stack) || err));
             onError && onError(err instanceof Error ? err : new Error(String(err)));
             return;
         }
 
-        // コールバックを第2引数として渡す（リファレンスのシグネチャ準拠）。
-        // 読み取り完了後にこのコールバックが呼ばれるはず。実機で
-        // 「read callback発火」ログが出なければ、コールバックが登録されていない＝
-        // read の呼び出し方/SDK 側の問題に切り分けられる。
         try {
             reader.read(options, (res) => {
                 try {
-                    // 画像base64でログが溢れて後続行が見えなくなるため、要約だけ出す
-                    let summary;
-                    try {
-                        summary = JSON.stringify({
-                            status: res && res.status,
-                            codeCount: (res && res.data && res.data.codes) ? res.data.codes.length : 0,
-                            imageKeys: (res && res.data && res.data.images) ? Object.keys(res.data.images) : []
-                        });
-                    } catch (_) { summary = String(res); }
-                    dbg('read callback発火 summary=', summary);
-
                     if (!res || res.status === false) {
-                        dbg('status=false/空 -> onError');
                         onError && onError(new Error('読み取りに失敗しました'));
                         return;
                     }
-
-                    // リファレンス（Ver.1.4.0）通り: res.data.codes[0].code がコードの値
+                    // res.data.codes[0].code がコードの値（リファレンス準拠）
                     const first = (res.data && res.data.codes && res.data.codes[0]) || null;
-                    dbg('codes[0]=', peek(first));
                     if (!first || first.code == null) {
-                        dbg('code無し -> onError');
                         onError && onError(new Error(
                             'コードを認識できませんでした。\nリーダー出力: ' + peek(res.data || res)
                         ));
@@ -108,24 +76,18 @@ const Reader = (() => {
                         photo = String(rawImg).startsWith('data:') ? rawImg : `data:image/jpeg;base64,${rawImg}`;
                     }
 
-                    const code = String(first.code).trim();
-                    dbg('onResult呼び出し code=', code, 'photo=', rawImg ? 'あり' : 'なし');
                     onResult && onResult({
                         // 値の型・桁ゆれ（数値/文字列/ゼロ埋め）は Equipment.byCcCode 側で吸収する
-                        code,
+                        code: String(first.code).trim(),
                         photo,
                         datetime: first.datetime || Util.formatDateTime(new Date()),
-                        debug: peek(first)   // 紐づかなかったときの診断用
+                        debug: peek(first)   // 台帳に紐づかなかったときの診断用
                     });
                 } catch (err) {
-                    // コールバック内の例外は SDK に握り潰される恐れがあるため必ず可視化
-                    dbg('callback例外:', String((err && err.stack) || err));
                     onError && onError(err instanceof Error ? err : new Error(String(err)));
                 }
             });
-            dbg('reader.read呼び出し完了（コールバック待ち…）');
         } catch (err) {
-            dbg('read呼び出し例外:', String((err && err.stack) || err));
             onError && onError(err instanceof Error ? err : new Error(String(err)));
         }
     }

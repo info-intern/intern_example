@@ -271,9 +271,11 @@
                 </div>
                 <button class="thumb ${it.imageKey ? '' : 'thumb--none'}" type="button"
                         data-id="${esc(it.id)}" ${it.imageKey ? '' : 'disabled'}
-                        aria-label="棚卸写真を見る">
+                        aria-label="${it.imageKey ? '棚卸写真を見る' : '写真なし'}">
                     <img data-imgkey="${esc(it.imageKey || '')}" alt="">
-                    <span class="thumb__ph" aria-hidden="true">写真<br>なし</span>
+                    <span class="thumb__ph" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="8.5" cy="10.5" r="1.6"/><path d="M21 16l-4.5-4.5L7 21"/></svg>
+                    </span>
                 </button>`;
             list.appendChild(li);
         });
@@ -342,19 +344,14 @@
         renderSheet();
     });
 
-    /** 画面デバッグログ（コンソールが使えない実機向け。確認後に外す想定） */
-    function dbg(...a) { try { window.DBG && window.DBG.log('[main]', ...a); } catch (_) {} }
-
     function startScan() {
         const items = scopeItems();
-        dbg('startScan isReal=', Reader.isReal, 'site=', state.site, 'cat=', state.category, 'items=', items.length);
         if (!items.length) { toast('対象の備品がありません'); return; }
 
         if (Reader.isReal) {
             Reader.readReal({
                 onResult: handleScanResult,
                 onError: (err) => {
-                    dbg('onError:', err && err.message);
                     dialog({
                         eyebrow: '読み取り',
                         title: '読み取りに失敗しました',
@@ -370,7 +367,6 @@
 
     function handleScanResult({ code, photo, datetime, debug }) {
         const item = Equipment.byCcCode(code);
-        dbg('handleScanResult code=', code, '一致=', item ? item.id : 'なし');
         if (!item) {
             dialog({
                 eyebrow: '読み取り',
@@ -382,7 +378,7 @@
             return;
         }
         const dt = datetime || Util.formatDateTime(new Date());
-        const proceed = () => { dbg('openConfirm表示', item.id); openConfirm({
+        const proceed = () => { openConfirm({
             item,
             photo: photo || Reader.makeDemoPhoto(item, dt),
             datetime: dt
@@ -390,7 +386,6 @@
 
         // 取り違え防止：選択中の拠点・対象と異なる備品は確認してから記録
         if (item.location !== state.site || item.category !== state.category) {
-            dbg('スコープ不一致', item.location, item.category, '<>', state.site, state.category);
             dialog({
                 eyebrow: '取り違えの確認',
                 title: '別の対象の備品です',
@@ -465,7 +460,6 @@
         m.hidden = false;
         kickRepaint();
         setTimeout(kickRepaint, 300);  // カメラ復帰直後の描画遅延に備えた保険
-        dbg('openModal', m.id);
     }
     function closeModal(m) {
         m.hidden = true;
