@@ -1192,7 +1192,11 @@ select.form__input {
     display: grid;
     place-items: center;
     padding: 20px;
-    animation: fadeIn 0.2s both;
+    /* fill-mode は forwards に。both だと iOS WebView で入場アニメが発火しない場合に
+       from(opacity:0) のまま固定され、モーダルが「表示状態なのに透明で見えない」状態に
+       なる。forwards なら未発火時も基準の opacity:1（=見える）が保たれる。 */
+    animation: fadeIn 0.2s forwards;
+    opacity: 1;
 }
 
 .modal__card {
@@ -1202,7 +1206,9 @@ select.form__input {
     border-radius: var(--r-lg);
     box-shadow: var(--shadow-lg);
     padding: 22px;
-    animation: cardIn 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+    /* 同上：both→forwards。未発火時も opacity:1 を保ち、カードが透明にならないように */
+    animation: cardIn 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.1) forwards;
+    opacity: 1;
     max-height: calc(100vh - 40px);
     max-height: calc(100dvh - 40px);
     overflow-y: auto;
