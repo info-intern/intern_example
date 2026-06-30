@@ -440,6 +440,14 @@
 
     /* ---------- 撮影確認ダイアログ ---------- */
 
+    // 【修正(build-N)】iOS WKWebView は .app(position:relative) を fixed モーダルの上に
+    // 誤って合成描画する。z-index:99999 でも translateZ でも勝てず、.app を消すとモーダルが
+    // 出ることを build-L で実機確認済み。モーダル表示中だけ .app の描画を止めて最前面に出す。
+    function shieldApp(hide) {
+        const app = document.querySelector('.app');
+        if (app) app.style.display = hide ? 'none' : '';
+    }
+
     function openConfirm({ item, photo, datetime }) {
         try {
             state.pendingScan = { item, photo, datetime };
@@ -449,15 +457,8 @@
             $('#confirm-name').textContent = item.name;
             $('#confirm-time').textContent = datetime;
             m.hidden = false;
-            // 【修正(build-M)】iOS WKWebView は position:fixed のモーダルを、本来より高い
-            // z-index でも .app(position:relative) の下に誤って描画する合成順バグがある
-            // （z-index:99999 でも .app に覆われ、.app を display:none にすると出ることを実機で確認）。
-            // モーダルを独立した合成レイヤーへ昇格させ、最前面に確実に出す（定石の回避策）。
-            // ※インラインで当てているのは外部CSSキャッシュの影響を避けて検証するため。
-            //   有効を確認できたら .modal のCSSへ正式に移す。
-            m.style.setProperty('transform', 'translateZ(0)', 'important');
-            m.style.setProperty('-webkit-transform', 'translateZ(0)', 'important');
-            dbg('openConfirm表示(build-M fix)', item.id, 'size=', m.offsetWidth + 'x' + m.offsetHeight);
+            shieldApp(true);
+            dbg('openConfirm表示(build-N)', item.id, 'size=', m.offsetWidth + 'x' + m.offsetHeight);
         } catch (e) {
             dbg('openConfirm例外:', String((e && e.stack) || e));
         }
@@ -465,6 +466,7 @@
 
     function closeConfirm() {
         $('#modal-confirm').hidden = true;
+        shieldApp(false);
         state.pendingScan = null;
     }
 
