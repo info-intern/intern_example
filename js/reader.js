@@ -73,9 +73,16 @@ const Reader = (() => {
         try {
             reader.read(options, (res) => {
                 try {
-                    let dump;
-                    try { dump = JSON.stringify(res); } catch (_) { dump = String(res); }
-                    dbg('read callback発火 res=', (dump || '').slice(0, 500));
+                    // 画像base64でログが溢れて後続行が見えなくなるため、要約だけ出す
+                    let summary;
+                    try {
+                        summary = JSON.stringify({
+                            status: res && res.status,
+                            codeCount: (res && res.data && res.data.codes) ? res.data.codes.length : 0,
+                            imageKeys: (res && res.data && res.data.images) ? Object.keys(res.data.images) : []
+                        });
+                    } catch (_) { summary = String(res); }
+                    dbg('read callback発火 summary=', summary);
 
                     if (!res || res.status === false) {
                         dbg('status=false/空 -> onError');
