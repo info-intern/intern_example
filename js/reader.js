@@ -27,6 +27,20 @@ const Reader = (() => {
         const singleVal = (window.IroatoReader && window.IroatoReader.single);
         dbg('readReal開始 IroatoReader=', hasReader, 'single=', String(singleVal));
 
+        // カメラ認識時にコード番号ではなく「紐づく商品名」を表示する。
+        // リファレンス displayData: { "<コード番号>": "<表示文字列>" } 形式。
+        // 台帳(Equipment)の ccCode→name で対応表を作る。
+        const displayData = {};
+        try {
+            const allItems = (typeof Equipment !== 'undefined' && Equipment.all) ? Equipment.all() : [];
+            allItems.forEach((it) => {
+                if (it && it.ccCode != null) displayData[String(it.ccCode)] = it.name;
+            });
+            dbg('displayData件数=', Object.keys(displayData).length);
+        } catch (e) {
+            dbg('displayData生成失敗:', String(e));
+        }
+
         // リファレンス(Ver.1.4.0)の read シグネチャは read(<オプション>, <コールバック>)。
         // オプションはコンストラクタと read の両方で同形式を受け付けるため、同じ
         // オプションオブジェクトを使い回す（値が同一なので二重指定でも齟齬は出ない）。
@@ -37,6 +51,7 @@ const Reader = (() => {
             analyzeLevel: 5,
             returnImage: true,
             imageWidth: 640,
+            displayData: displayData,   // ← 認識時にコード番号ではなく商品名を表示
             labelText: 'カメレオンコードを枠内に収めてください',
             buttonText: '読み取り'
         };
