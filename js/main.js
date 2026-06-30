@@ -449,54 +449,15 @@
             $('#confirm-name').textContent = item.name;
             $('#confirm-time').textContent = datetime;
             m.hidden = false;
-            const cs = window.getComputedStyle(m);
-            // 【調査(build-J)】デバイスに実際に読み込まれたCSSの値を記録（上書き前）。
-            // opacity=0 なら build-H の修正が未反映＝CSSキャッシュ確定。
-            // backdrop に blur(3px) が残っていれば build-I が未反映＝CSSキャッシュ確定。
-            const realCss = 'opacity=' + cs.opacity + ' visibility=' + cs.visibility
-                + ' bg=' + cs.backgroundColor
-                + ' backdrop=' + (cs.backdropFilter || cs.webkitBackdropFilter || '-');
-            dbg('実CSS(上書き前)', realCss);
-            // 【調査(build-J)】外部CSS（キャッシュ/特定プロパティ）の影響を完全に排除し、
-            // 「この要素は描画できるのか？」を断定するためのインライン強制可視化。
-            // これで赤い全画面が出れば原因はCSS側。出なければ描画基盤側の問題。
-            m.style.setProperty('opacity', '1', 'important');
-            // 【調査(build-L)】モーダルは青、body は赤に色分け。アプリ画面(.app)も退かす。
-            //  全画面 青 → モーダルは描ける。今まで見えなかったのは .app に覆われていた=重なり問題
-            //  全画面 赤 → .app を消してもモーダルが出ない=モーダル要素そのものが描かれない
-            m.style.setProperty('background', 'rgba(0,40,255,0.96)', 'important');
-            m.style.setProperty('backdrop-filter', 'none', 'important');
-            m.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
-            m.style.setProperty('z-index', '99999', 'important');
-            m.style.setProperty('animation', 'none', 'important');
-            // 【調査(build-K)】モーダルすら赤くならない=描画基盤の凍結を疑う。
-            // ページ全体(body)を赤くする。これすら見えなければ「カメラ復帰後に WebView が
-            // 新フレームを描画していない(表示凍結)」で確定。あわせて強制再描画を複数手かけ、
-            // 解凍できるか(=リペイント強制が回避策になるか)も同時に検証する。
-            function forceRepaint(tag) {
-                document.body.style.setProperty('background', 'rgba(220,0,0,0.96)', 'important');
-                // build-L: モーダルを覆っている可能性のあるアプリ画面を退かす
-                var appEl = document.querySelector('.app');
-                if (appEl) appEl.style.setProperty('display', 'none', 'important');
-                var de = document.documentElement;
-                de.style.transform = 'translateZ(0)'; void de.offsetHeight; de.style.transform = '';
-                var prev = document.body.style.display;
-                document.body.style.display = 'none'; void document.body.offsetHeight;
-                document.body.style.display = prev;
-                window.scrollBy(0, 1); window.scrollBy(0, -1);
-                dbg('body強制赤+リペイント試行', tag);
-            }
-            forceRepaint('即時');
-            setTimeout(function () { forceRepaint('800ms後'); }, 800);
-            dbg('openConfirm後 hidden=', m.hidden, 'display=', cs.display,
-                'size=', m.offsetWidth + 'x' + m.offsetHeight, 'photoLen=', (photo || '').length);
-            // 600ms後に再確認。ここが出ずに boot 行が出るならページがリロードされている。
-            setTimeout(function () {
-                const m2 = $('#modal-confirm');
-                const cs2 = window.getComputedStyle(m2);
-                dbg('openConfirm+600ms hidden=', m2.hidden, 'display=', cs2.display,
-                    'size=', m2.offsetWidth + 'x' + m2.offsetHeight);
-            }, 600);
+            // 【修正(build-M)】iOS WKWebView は position:fixed のモーダルを、本来より高い
+            // z-index でも .app(position:relative) の下に誤って描画する合成順バグがある
+            // （z-index:99999 でも .app に覆われ、.app を display:none にすると出ることを実機で確認）。
+            // モーダルを独立した合成レイヤーへ昇格させ、最前面に確実に出す（定石の回避策）。
+            // ※インラインで当てているのは外部CSSキャッシュの影響を避けて検証するため。
+            //   有効を確認できたら .modal のCSSへ正式に移す。
+            m.style.setProperty('transform', 'translateZ(0)', 'important');
+            m.style.setProperty('-webkit-transform', 'translateZ(0)', 'important');
+            dbg('openConfirm表示(build-M fix)', item.id, 'size=', m.offsetWidth + 'x' + m.offsetHeight);
         } catch (e) {
             dbg('openConfirm例外:', String((e && e.stack) || e));
         }
