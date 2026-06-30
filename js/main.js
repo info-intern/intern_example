@@ -466,6 +466,22 @@
             m.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
             m.style.setProperty('z-index', '99999', 'important');
             m.style.setProperty('animation', 'none', 'important');
+            // 【調査(build-K)】モーダルすら赤くならない=描画基盤の凍結を疑う。
+            // ページ全体(body)を赤くする。これすら見えなければ「カメラ復帰後に WebView が
+            // 新フレームを描画していない(表示凍結)」で確定。あわせて強制再描画を複数手かけ、
+            // 解凍できるか(=リペイント強制が回避策になるか)も同時に検証する。
+            function forceRepaint(tag) {
+                document.body.style.setProperty('background', 'rgba(220,0,0,0.96)', 'important');
+                var de = document.documentElement;
+                de.style.transform = 'translateZ(0)'; void de.offsetHeight; de.style.transform = '';
+                var prev = document.body.style.display;
+                document.body.style.display = 'none'; void document.body.offsetHeight;
+                document.body.style.display = prev;
+                window.scrollBy(0, 1); window.scrollBy(0, -1);
+                dbg('body強制赤+リペイント試行', tag);
+            }
+            forceRepaint('即時');
+            setTimeout(function () { forceRepaint('800ms後'); }, 800);
             dbg('openConfirm後 hidden=', m.hidden, 'display=', cs.display,
                 'size=', m.offsetWidth + 'x' + m.offsetHeight, 'photoLen=', (photo || '').length);
             // 600ms後に再確認。ここが出ずに boot 行が出るならページがリロードされている。
