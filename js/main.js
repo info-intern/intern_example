@@ -342,19 +342,26 @@
         renderSheet();
     });
 
+    /** 画面デバッグログ（コンソールが使えない実機向け。確認後に外す想定） */
+    function dbg(...a) { try { window.DBG && window.DBG.log('[main]', ...a); } catch (_) {} }
+
     function startScan() {
         const items = scopeItems();
+        dbg('startScan isReal=', Reader.isReal, 'site=', state.site, 'cat=', state.category, 'items=', items.length);
         if (!items.length) { toast('対象の備品がありません'); return; }
 
         if (Reader.isReal) {
             Reader.readReal({
                 onResult: handleScanResult,
-                onError: (err) => dialog({
-                    eyebrow: '読み取り',
-                    title: '読み取りに失敗しました',
-                    body: err.message,
-                    okLabel: '閉じる'
-                })
+                onError: (err) => {
+                    dbg('onError:', err && err.message);
+                    dialog({
+                        eyebrow: '読み取り',
+                        title: '読み取りに失敗しました',
+                        body: err.message,
+                        okLabel: '閉じる'
+                    });
+                }
             });
         } else {
             startDemoScan(items);
@@ -363,6 +370,7 @@
 
     function handleScanResult({ code, photo, datetime, debug }) {
         const item = Equipment.byCcCode(code);
+        dbg('handleScanResult code=', code, '一致=', item ? item.id : 'なし');
         if (!item) {
             dialog({
                 eyebrow: '読み取り',
@@ -374,14 +382,15 @@
             return;
         }
         const dt = datetime || Util.formatDateTime(new Date());
-        const proceed = () => openConfirm({
+        const proceed = () => { dbg('openConfirm表示', item.id); openConfirm({
             item,
             photo: photo || Reader.makeDemoPhoto(item, dt),
             datetime: dt
-        });
+        }); };
 
         // 取り違え防止：選択中の拠点・対象と異なる備品は確認してから記録
         if (item.location !== state.site || item.category !== state.category) {
+            dbg('スコープ不一致', item.location, item.category, '<>', state.site, state.category);
             dialog({
                 eyebrow: '取り違えの確認',
                 title: '別の対象の備品です',
