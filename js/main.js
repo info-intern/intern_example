@@ -361,13 +361,14 @@
         }
     }
 
-    function handleScanResult({ code, photo, datetime }) {
+    function handleScanResult({ code, photo, datetime, debug }) {
         const item = Equipment.byCcCode(code);
         if (!item) {
             dialog({
                 eyebrow: '読み取り',
                 title: `未登録のコードです（No.${code}）`,
-                body: 'このコードに紐づく備品が台帳にありません。台帳管理から登録してください。',
+                body: 'このコードに紐づく備品が台帳にありません。台帳管理から登録してください。'
+                    + (debug ? `\n\n[診断] リーダー出力: ${debug}` : ''),
                 okLabel: '閉じる'
             });
             return;

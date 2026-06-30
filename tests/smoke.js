@@ -45,6 +45,11 @@ for (const f of files) {
     assert.strictEqual(created.id, 'EQ-0040', '管理番号は EQ-0040 が発行されること');
     assert.strictEqual(created.ccCode, '40', 'CCコードは1〜100の最小の空き（40）が採番されること');
     assert.strictEqual(Equipment.byCcCode('40').id, 'EQ-0040', 'CCコードで逆引きできること');
+    // リーダーが返す形式の揺れ（数値・ゼロ埋め・空白）でも紐づくこと
+    assert.strictEqual(Equipment.byCcCode(40).id, 'EQ-0040', '数値でも逆引きできること');
+    assert.strictEqual(Equipment.byCcCode(' 040 ').id, 'EQ-0040', 'ゼロ埋め・空白付きでも逆引きできること');
+    assert.strictEqual(Equipment.byCcCode('abc'), null, '数値でないコードは紐づかないこと');
+    assert.strictEqual(Equipment.byCcCode('999'), null, '未登録のコードは紐づかないこと');
 
     /* 4. チェック + 画像保存（メモリフォールバック） */
     await Store.putImage('img-test', 'data:image/jpeg;base64,xxxx');

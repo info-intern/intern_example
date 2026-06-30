@@ -17,8 +17,15 @@ const Equipment = (() => {
         return list.find(it => it.id === id) || null;
     }
 
+    /**
+     * カメレオンコード番号で備品を引く。
+     * リーダーが返す値が数値・文字列・ゼロ埋め・前後空白いずれでも紐づくよう、
+     * 整数として正規化して比較する（コードは 1〜100 の番号）。
+     */
     function byCcCode(code) {
-        return list.find(it => it.ccCode === String(code)) || null;
+        const n = parseInt(String(code).trim(), 10);
+        if (!Number.isInteger(n)) return null;
+        return list.find(it => Number(it.ccCode) === n) || null;
     }
 
     /** 拠点 × 対象区分で絞り込む。null は「すべて」 */

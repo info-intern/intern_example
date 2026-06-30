@@ -8,6 +8,12 @@
 const Reader = (() => {
     const isReal = typeof window.IroatoReader !== 'undefined';
 
+    /** 診断用：オブジェクトを短いJSON文字列にする */
+    function peek(obj) {
+        try { return JSON.stringify(obj).slice(0, 300); }
+        catch (_) { return String(obj); }
+    }
+
     /**
      * 実機で1コード読み取る。
      * @param {Function} onResult ({ code, photo, datetime }) photo は DataURL または null
@@ -26,24 +32,37 @@ const Reader = (() => {
         });
 
         reader.read((res) => {
+            // 実機の戻り値構造を確認するためのログ（診断用）
+            try { console.log('[IroatoReader] result =', JSON.stringify(res)); }
+            catch (_) { console.log('[IroatoReader] result =', res); }
+
             if (!res || res.status === false) {
                 onError && onError(new Error('読み取りに失敗しました'));
                 return;
             }
-            const code = (res.data?.codes || [])[0];
-            if (!code) {
-                onError && onError(new Error('コードを認識できませんでした'));
+
+            // リファレンス（Ver.1.4.0）通り: res.data.codes[0].code がコードの値
+            const first = (res.data && res.data.codes && res.data.codes[0]) || null;
+            if (!first || first.code == null) {
+                onError && onError(new Error(
+                    'コードを認識できませんでした。\nリーダー出力: ' + peek(res.data || res)
+                ));
                 return;
             }
+
+            // 写真（returnImage:true のとき images に Base64 が入る）
             let photo = null;
-            const raw = code.imageKey ? res.data.images?.[code.imageKey] : null;
-            if (raw) {
-                photo = raw.startsWith('data:') ? raw : `data:image/jpeg;base64,${raw}`;
+            const rawImg = (first.imageKey && res.data.images) ? res.data.images[first.imageKey] : null;
+            if (rawImg) {
+                photo = String(rawImg).startsWith('data:') ? rawImg : `data:image/jpeg;base64,${rawImg}`;
             }
+
             onResult && onResult({
-                code: String(code.code),
+                // 値の型・桁ゆれ（数値/文字列/ゼロ埋め）は Equipment.byCcCode 側で吸収する
+                code: String(first.code).trim(),
                 photo,
-                datetime: code.datetime || Util.formatDateTime(new Date())
+                datetime: first.datetime || Util.formatDateTime(new Date()),
+                debug: peek(first)   // 紐づかなかったときの診断用
             });
         });
     }

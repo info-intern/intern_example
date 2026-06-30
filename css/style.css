@@ -1232,6 +1232,8 @@ select.form__input {
     font-size: 13.5px;
     color: var(--text-sub);
     margin-bottom: 20px;
+    white-space: pre-line;   /* 本文中の改行を活かす（診断・複数行メッセージ用） */
+    word-break: break-word;
 }
 .modal__note {
     font-size: 12px;
