@@ -1187,8 +1187,13 @@ select.form__input {
     inset: 0;
     z-index: 70;
     background: rgba(15, 18, 22, 0.5);
-    backdrop-filter: blur(3px);
-    -webkit-backdrop-filter: blur(3px);
+    /* 【調査(build-I)】iOS WKWebView では backdrop-filter 付きの fixed 要素を display で
+       出すと、背景色も子要素もまとめて空(透明)でレンダリングされ、タップでも復帰しない
+       既知バグがある。モーダルがフルサイズ・display:grid・opacity:1・最前面・リロード無し
+       なのに完全不可視、という実機症状の唯一残った容疑者がこれ。切り分けのため一時無効化。
+       これで表示されれば backdrop-filter が真犯人で確定。 */
+    /* backdrop-filter: blur(3px); */
+    /* -webkit-backdrop-filter: blur(3px); */
     display: grid;
     place-items: center;
     padding: 20px;
