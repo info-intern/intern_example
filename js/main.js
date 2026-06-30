@@ -461,7 +461,10 @@
             // 「この要素は描画できるのか？」を断定するためのインライン強制可視化。
             // これで赤い全画面が出れば原因はCSS側。出なければ描画基盤側の問題。
             m.style.setProperty('opacity', '1', 'important');
-            m.style.setProperty('background', 'rgba(220,0,0,0.92)', 'important');
+            // 【調査(build-L)】モーダルは青、body は赤に色分け。アプリ画面(.app)も退かす。
+            //  全画面 青 → モーダルは描ける。今まで見えなかったのは .app に覆われていた=重なり問題
+            //  全画面 赤 → .app を消してもモーダルが出ない=モーダル要素そのものが描かれない
+            m.style.setProperty('background', 'rgba(0,40,255,0.96)', 'important');
             m.style.setProperty('backdrop-filter', 'none', 'important');
             m.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
             m.style.setProperty('z-index', '99999', 'important');
@@ -472,6 +475,9 @@
             // 解凍できるか(=リペイント強制が回避策になるか)も同時に検証する。
             function forceRepaint(tag) {
                 document.body.style.setProperty('background', 'rgba(220,0,0,0.96)', 'important');
+                // build-L: モーダルを覆っている可能性のあるアプリ画面を退かす
+                var appEl = document.querySelector('.app');
+                if (appEl) appEl.style.setProperty('display', 'none', 'important');
                 var de = document.documentElement;
                 de.style.transform = 'translateZ(0)'; void de.offsetHeight; de.style.transform = '';
                 var prev = document.body.style.display;
