@@ -104,15 +104,15 @@
         okBtn.querySelector('.cta__label').textContent = okLabel;
         okBtn.classList.toggle('cta--danger', danger);
         dialogOnOk = onOk || null;
-        $('#modal-dialog').hidden = false;
+        openModal($('#modal-dialog'));
     }
     $('#dialog-ok').addEventListener('click', async () => {
-        $('#modal-dialog').hidden = true;
+        closeModal($('#modal-dialog'));
         if (dialogOnOk) await dialogOnOk();
         dialogOnOk = null;
     });
     $('#dialog-cancel').addEventListener('click', () => {
-        $('#modal-dialog').hidden = true;
+        closeModal($('#modal-dialog'));
         dialogOnOk = null;
     });
 
@@ -321,9 +321,9 @@
         $('#view-id').textContent = item.id;
         $('#view-name').textContent = item.name;
         $('#view-time').textContent = item.checkedAt || '—';
-        $('#modal-photo').hidden = false;
+        openModal($('#modal-photo'));
     }
-    $('#btn-photo-close').addEventListener('click', () => { $('#modal-photo').hidden = true; });
+    $('#btn-photo-close').addEventListener('click', () => { closeModal($('#modal-photo')); });
 
     /* ================= 読み取り =================
      * 実機: IroatoReader（1コード + 自動撮影）
@@ -440,33 +440,50 @@
 
     /* ---------- 撮影確認ダイアログ ---------- */
 
-    // 【修正(build-N)】iOS WKWebView は .app(position:relative) を fixed モーダルの上に
-    // 誤って合成描画する。z-index:99999 でも translateZ でも勝てず、.app を消すとモーダルが
-    // 出ることを build-L で実機確認済み。モーダル表示中だけ .app の描画を止めて最前面に出す。
+    /* ---------- モーダル表示の共通制御 ----------
+     * IroatoReader（iOS WKWebView）対策が2点ある：
+     *  (1) 重なり: position:fixed のモーダルが .app(position:relative) の下に誤って
+     *      合成描画される（z-index でも translateZ でも勝てない）。表示中だけ .app の
+     *      描画を止めて確実に最前面へ出す。
+     *  (2) 再描画: カメラから復帰した直後は DOM を変えても WebView が画面を描き直さない
+     *      ことがある。明示的に再描画を促す。
+     * 全モーダルはこの openModal / closeModal を必ず通す。
+     */
     function shieldApp(hide) {
         const app = document.querySelector('.app');
         if (app) app.style.display = hide ? 'none' : '';
     }
+    function kickRepaint() {
+        const de = document.documentElement;
+        de.style.transform = 'translateZ(0)';
+        void de.offsetWidth;           // 強制リフロー
+        de.style.transform = '';
+        window.scrollBy(0, 1); window.scrollBy(0, -1);
+    }
+    function openModal(m) {
+        shieldApp(true);
+        m.hidden = false;
+        kickRepaint();
+        setTimeout(kickRepaint, 300);  // カメラ復帰直後の描画遅延に備えた保険
+        dbg('openModal', m.id);
+    }
+    function closeModal(m) {
+        m.hidden = true;
+        // 他に開いているモーダルが無ければアプリ表示を戻す
+        if (!document.querySelector('.modal:not([hidden])')) shieldApp(false);
+    }
 
     function openConfirm({ item, photo, datetime }) {
-        try {
-            state.pendingScan = { item, photo, datetime };
-            const m = $('#modal-confirm');
-            $('#confirm-photo').src = photo || '';
-            $('#confirm-id').textContent = item.id;
-            $('#confirm-name').textContent = item.name;
-            $('#confirm-time').textContent = datetime;
-            m.hidden = false;
-            shieldApp(true);
-            dbg('openConfirm表示(build-N)', item.id, 'size=', m.offsetWidth + 'x' + m.offsetHeight);
-        } catch (e) {
-            dbg('openConfirm例外:', String((e && e.stack) || e));
-        }
+        state.pendingScan = { item, photo, datetime };
+        $('#confirm-photo').src = photo || '';
+        $('#confirm-id').textContent = item.id;
+        $('#confirm-name').textContent = item.name;
+        $('#confirm-time').textContent = datetime;
+        openModal($('#modal-confirm'));
     }
 
     function closeConfirm() {
-        $('#modal-confirm').hidden = true;
-        shieldApp(false);
+        closeModal($('#modal-confirm'));
         state.pendingScan = null;
     }
 

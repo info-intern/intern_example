@@ -1186,20 +1186,16 @@ select.form__input {
     position: fixed;
     inset: 0;
     z-index: 70;
-    background: rgba(15, 18, 22, 0.5);
-    /* 【調査(build-I)】iOS WKWebView では backdrop-filter 付きの fixed 要素を display で
-       出すと、背景色も子要素もまとめて空(透明)でレンダリングされ、タップでも復帰しない
-       既知バグがある。モーダルがフルサイズ・display:grid・opacity:1・最前面・リロード無し
-       なのに完全不可視、という実機症状の唯一残った容疑者がこれ。切り分けのため一時無効化。
-       これで表示されれば backdrop-filter が真犯人で確定。 */
-    /* backdrop-filter: blur(3px); */
-    /* -webkit-backdrop-filter: blur(3px); */
+    /* モーダル表示中は背面の .app を非表示にする（iOS WKWebView で position:fixed の
+       要素が .app の下に潜り込む合成バグの回避。js の openModal を参照）。そのため背景は
+       それ単体で成立する濃いめの暗幕にしておく。backdrop-filter は iOS で要素ごと透明化
+       する不具合があり不使用。 */
+    background: rgba(16, 18, 24, 0.86);
     display: grid;
     place-items: center;
     padding: 20px;
-    /* fill-mode は forwards に。both だと iOS WebView で入場アニメが発火しない場合に
-       from(opacity:0) のまま固定され、モーダルが「表示状態なのに透明で見えない」状態に
-       なる。forwards なら未発火時も基準の opacity:1（=見える）が保たれる。 */
+    /* fill-mode は forwards。both だと iOS WebView で入場アニメ未発火時に from(opacity:0)
+       のまま固定され透明になる。forwards + opacity:1 で未発火時も可視を保つ。 */
     animation: fadeIn 0.2s forwards;
     opacity: 1;
 }
