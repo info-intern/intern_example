@@ -450,6 +450,22 @@
             $('#confirm-time').textContent = datetime;
             m.hidden = false;
             const cs = window.getComputedStyle(m);
+            // 【調査(build-J)】デバイスに実際に読み込まれたCSSの値を記録（上書き前）。
+            // opacity=0 なら build-H の修正が未反映＝CSSキャッシュ確定。
+            // backdrop に blur(3px) が残っていれば build-I が未反映＝CSSキャッシュ確定。
+            const realCss = 'opacity=' + cs.opacity + ' visibility=' + cs.visibility
+                + ' bg=' + cs.backgroundColor
+                + ' backdrop=' + (cs.backdropFilter || cs.webkitBackdropFilter || '-');
+            dbg('実CSS(上書き前)', realCss);
+            // 【調査(build-J)】外部CSS（キャッシュ/特定プロパティ）の影響を完全に排除し、
+            // 「この要素は描画できるのか？」を断定するためのインライン強制可視化。
+            // これで赤い全画面が出れば原因はCSS側。出なければ描画基盤側の問題。
+            m.style.setProperty('opacity', '1', 'important');
+            m.style.setProperty('background', 'rgba(220,0,0,0.92)', 'important');
+            m.style.setProperty('backdrop-filter', 'none', 'important');
+            m.style.setProperty('-webkit-backdrop-filter', 'none', 'important');
+            m.style.setProperty('z-index', '99999', 'important');
+            m.style.setProperty('animation', 'none', 'important');
             dbg('openConfirm後 hidden=', m.hidden, 'display=', cs.display,
                 'size=', m.offsetWidth + 'x' + m.offsetHeight, 'photoLen=', (photo || '').length);
             // 600ms後に再確認。ここが出ずに boot 行が出るならページがリロードされている。
