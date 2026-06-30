@@ -20,7 +20,10 @@ const Reader = (() => {
      * @param {Function} onError  (Error)
      */
     function readReal({ onResult, onError }) {
-        const reader = new window.IroatoReader('cc', {
+        // リファレンス(Ver.1.4.0)の read シグネチャは read(<オプション>, <コールバック>)。
+        // オプションはコンストラクタと read の両方で同形式を受け付けるため、同じ
+        // オプションオブジェクトを使い回す（値が同一なので二重指定でも齟齬は出ない）。
+        const options = {
             mode: window.IroatoReader.single,
             cameraType: window.IroatoReader.wide,
             resolution: window.IroatoReader.r1920x1080,
@@ -29,9 +32,15 @@ const Reader = (() => {
             imageWidth: 640,
             labelText: 'カメレオンコードを枠内に収めてください',
             buttonText: '読み取り'
-        });
+        };
+        const reader = new window.IroatoReader('cc', options);
 
-        reader.read((res) => {
+        // コールバックは必ず「第2引数」として渡す。
+        // read((res)=>{}) のように第1引数だけで渡すと、SDK が引数の位置で
+        // コールバックを束ねる実装（arguments[1] を採用）では登録されず、
+        // 読み取り完了（single の自動確定）後もコールバックが発火しない。
+        // 実機で「コードは表示されるが画面に戻っても何も起きない」のはこれが原因。
+        reader.read(options, (res) => {
             // 実機の戻り値構造を確認するためのログ（診断用）
             try { console.log('[IroatoReader] result =', JSON.stringify(res)); }
             catch (_) { console.log('[IroatoReader] result =', res); }
