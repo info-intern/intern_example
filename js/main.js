@@ -287,7 +287,7 @@
                 const item = Equipment.byId(btn.dataset.id);
                 if (!item) return;
                 if (item.checked) {
-                    await Equipment.setChecked(item.id, false);
+                    await Equipment.setChecked(item.id, false, null, null);
                     toast(`${item.id} の「済」を取り消しました`);
                 } else {
                     await Equipment.setChecked(item.id, true, Util.formatDateTime(new Date()));
